@@ -1,6 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
+import AnsiToHtml from 'ansi-to-html'
 import * as api from '../api'
 import type { BuildEvent } from '../types'
+
+const ansiConverter = new AnsiToHtml({
+  fg: '#c9d1d9',
+  bg: '#161b22',
+  newline: false,
+  escapeXML: true,
+})
 
 interface Props {
   themeId: string
@@ -13,6 +21,26 @@ interface Props {
 
 export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, buildStatus, onBuild }: Props) {
   const logEndRef = useRef<HTMLDivElement>(null)
+
+  const renderedLog = useMemo(() =>
+    buildLog.map((evt, i) => {
+      if (evt.type === 'start') {
+        return { i, cls: 'log-start', html: escapeHtml(evt.text ?? '') }
+      }
+      if (evt.type === 'done') {
+        return {
+          i,
+          cls: evt.success ? 'log-success' : 'log-error',
+          html: escapeHtml(
+            evt.success
+              ? '✓ Сборка успешно завершена'
+              : `✗ Сборка завершилась с кодом ${evt.code ?? '?'}`,
+          ),
+        }
+      }
+      return { i, cls: '', html: ansiConverter.toHtml(evt.text ?? '') }
+    }),
+  [buildLog])
 
   // Auto-scroll log to bottom
   useEffect(() => {
@@ -92,26 +120,17 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
           </div>
 
           <div className="build-log-output">
-            {buildLog.length === 0 ? (
+            {renderedLog.length === 0 ? (
               <span style={{ color: 'var(--text-2)' }}>Лог появится после запуска сборки</span>
             ) : (
-              buildLog.map((evt, i) => {
-                if (evt.type === 'start') {
-                  return <div key={i} className="log-line log-start">{evt.text}</div>
-                }
-                if (evt.type === 'done') {
-                  return (
-                    <div key={i} className={`log-line ${evt.success ? 'log-success' : 'log-error'}`}>
-                      {evt.success ? '✓ Сборка успешно завершена' : `✗ Сборка завершилась с кодом ${evt.code ?? '?'}`}
-                    </div>
-                  )
-                }
-                return (
-                  <div key={i} className="log-line">
-                    {evt.text}
-                  </div>
-                )
-              })
+              renderedLog.map(({ i, cls, html }) => (
+                <div
+                  key={i}
+                  className={`log-line${cls ? ` ${cls}` : ''}`}
+                  // ansi-to-html escapes XML by default; start/done use escapeHtml
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
+              ))
             )}
             <div ref={logEndRef} />
           </div>
@@ -132,4 +151,11 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
       </div>
     </div>
   )
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 }
