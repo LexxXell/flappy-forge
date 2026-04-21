@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from './api'
+import { useI18n } from './i18n'
 import type { BuildEvent, Manifest, ThemeMeta } from './types'
 import Sidebar from './components/Sidebar'
 import BasicSettings from './components/BasicSettings'
@@ -14,6 +15,8 @@ interface Toast { id: number; text: string; kind: 'success' | 'error' | 'info' }
 let _toastId = 0
 
 export default function App() {
+  const { t } = useI18n()
+
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [manifest, setManifest] = useState<Manifest | null>(null)
@@ -29,8 +32,8 @@ export default function App() {
 
   const toast = useCallback((text: string, kind: Toast['kind'] = 'info') => {
     const id = ++_toastId
-    setToasts(t => [...t, { id, text, kind }])
-    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), 3500)
+    setToasts(prev => [...prev, { id, text, kind }])
+    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), 3500)
   }, [])
 
   const loadThemes = useCallback(async () => {
@@ -52,9 +55,9 @@ export default function App() {
       setManifest(m)
       setAssets(a)
     } catch (e) {
-      toast(`Ошибка загрузки: ${(e as Error).message}`, 'error')
+      toast(t('toast.loadError', { msg: (e as Error).message }), 'error')
     }
-  }, [toast])
+  }, [t, toast])
 
   const handleManifestChange = useCallback((m: Manifest) => {
     setManifest(m)
@@ -67,27 +70,26 @@ export default function App() {
     try {
       await api.saveManifest(selectedId, manifest)
       setIsDirty(false)
-      toast('Манифест сохранён', 'success')
+      toast(t('toast.saved'), 'success')
       await loadThemes()
     } catch (e) {
-      toast(`Ошибка сохранения: ${(e as Error).message}`, 'error')
+      toast(t('toast.saveError', { msg: (e as Error).message }), 'error')
     } finally {
       setIsSaving(false)
     }
-  }, [selectedId, manifest, toast, loadThemes])
+  }, [selectedId, manifest, t, toast, loadThemes])
 
   const handleBuild = useCallback(async () => {
     if (!selectedId || !manifest) return
     if (buildStatus === 'building') return
 
-    // Save first if dirty
     if (isDirty) {
       setIsSaving(true)
       try {
         await api.saveManifest(selectedId, manifest)
         setIsDirty(false)
       } catch (e) {
-        toast(`Ошибка сохранения: ${(e as Error).message}`, 'error')
+        toast(t('toast.saveError', { msg: (e as Error).message }), 'error')
         setIsSaving(false)
         return
       }
@@ -103,25 +105,31 @@ export default function App() {
         if (evt.success) {
           setBuildStatus('success')
           setPreviewKey(k => k + 1)
-          toast('Сборка завершена!', 'success')
+          toast(t('toast.buildDone'), 'success')
           void loadThemes()
         } else {
           setBuildStatus('error')
-          toast('Сборка завершилась с ошибкой', 'error')
+          toast(t('toast.buildError'), 'error')
         }
         stopBuildRef.current = null
       }
     })
 
     stopBuildRef.current = stop
-  }, [selectedId, manifest, isDirty, buildStatus, toast, loadThemes])
+  }, [selectedId, manifest, isDirty, buildStatus, t, toast, loadThemes])
 
   const handleAssetsChange = useCallback(async () => {
     if (!selectedId) return
     try { setAssets(await api.getAssets(selectedId)) } catch {}
   }, [selectedId])
 
-  const selectedTheme = themes.find(t => t.id === selectedId)
+  const selectedTheme = themes.find(th => th.id === selectedId)
+
+  const TAB_LABELS: Record<Tab, string> = {
+    basic: t('tab.settings'),
+    assets: t('tab.assets'),
+    json: t('tab.json'),
+  }
 
   return (
     <div className="app">
@@ -137,7 +145,7 @@ export default function App() {
             setAssets([])
           }
           await loadThemes()
-          toast('Тема удалена', 'info')
+          toast(t('toast.themeDeleted'), 'info')
         }}
         toast={toast}
       />
@@ -148,29 +156,26 @@ export default function App() {
             <div className="editor-pane">
               <div className="empty-state">
                 <div className="empty-icon">🎮</div>
-                <h2>Flappy Forge</h2>
-                <p>Выберите тему из списка или создайте новую, чтобы начать</p>
+                <h2>{t('app.empty.editorTitle')}</h2>
+                <p>{t('app.empty.editorDesc')}</p>
               </div>
             </div>
             <div className="preview-pane">
               <div className="empty-state">
                 <div className="empty-icon">🖥️</div>
-                <h2>Предпросмотр</h2>
-                <p>Здесь появится игра после сборки</p>
+                <h2>{t('app.empty.previewTitle')}</h2>
+                <p>{t('app.empty.previewDesc')}</p>
               </div>
             </div>
           </>
         ) : (
           <>
-            {/* Editor pane */}
             <div className="editor-pane">
               <div className="toolbar">
-                <span className="toolbar-title">
-                  {selectedTheme?.title ?? selectedId}
-                </span>
-                {isDirty && <span className="dirty-dot" title="Есть несохранённые изменения" />}
+                <span className="toolbar-title">{selectedTheme?.title ?? selectedId}</span>
+                {isDirty && <span className="dirty-dot" title={t('toolbar.unsaved')} />}
                 <button className="btn btn-sm" onClick={handleSave} disabled={isSaving || !isDirty}>
-                  {isSaving ? <><span className="spinner" />Сохранение…</> : 'Сохранить'}
+                  {isSaving ? <><span className="spinner" />{t('toolbar.saving')}</> : t('toolbar.save')}
                 </button>
                 <button
                   className="btn btn-primary btn-sm"
@@ -178,19 +183,19 @@ export default function App() {
                   disabled={buildStatus === 'building'}
                 >
                   {buildStatus === 'building'
-                    ? <><span className="spinner" />Сборка…</>
-                    : '▶ Собрать'}
+                    ? <><span className="spinner" />{t('toolbar.building')}</>
+                    : t('toolbar.build')}
                 </button>
               </div>
 
               <div className="tab-bar">
-                {(['basic', 'assets', 'json'] as Tab[]).map(t => (
+                {(['basic', 'assets', 'json'] as Tab[]).map(tabId => (
                   <button
-                    key={t}
-                    className={`tab-btn${tab === t ? ' active' : ''}`}
-                    onClick={() => setTab(t)}
+                    key={tabId}
+                    className={`tab-btn${tab === tabId ? ' active' : ''}`}
+                    onClick={() => setTab(tabId)}
                   >
-                    {t === 'basic' ? '⚙ Настройки' : t === 'assets' ? '🖼 Ассеты' : '{ } JSON'}
+                    {TAB_LABELS[tabId]}
                   </button>
                 ))}
               </div>
@@ -211,7 +216,6 @@ export default function App() {
               )}
             </div>
 
-            {/* Preview pane */}
             <PreviewPanel
               themeId={selectedId}
               isBuilt={selectedTheme?.isBuilt ?? false}
@@ -224,10 +228,9 @@ export default function App() {
         )}
       </div>
 
-      {/* Toast notifications */}
       <div className="toast-container">
-        {toasts.map(t => (
-          <div key={t.id} className={`toast toast-${t.kind}`}>{t.text}</div>
+        {toasts.map(toast => (
+          <div key={toast.id} className={`toast toast-${toast.kind}`}>{toast.text}</div>
         ))}
       </div>
     </div>

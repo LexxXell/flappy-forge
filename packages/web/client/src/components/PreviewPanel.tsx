@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import AnsiToHtml from 'ansi-to-html'
 import * as api from '../api'
+import { useI18n } from '../i18n'
 import type { BuildEvent } from '../types'
 
 const ansiConverter = new AnsiToHtml({
@@ -20,29 +21,9 @@ interface Props {
 }
 
 export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, buildStatus, onBuild }: Props) {
+  const { t } = useI18n()
   const logEndRef = useRef<HTMLDivElement>(null)
 
-  const renderedLog = useMemo(() =>
-    buildLog.map((evt, i) => {
-      if (evt.type === 'start') {
-        return { i, cls: 'log-start', html: escapeHtml(evt.text ?? '') }
-      }
-      if (evt.type === 'done') {
-        return {
-          i,
-          cls: evt.success ? 'log-success' : 'log-error',
-          html: escapeHtml(
-            evt.success
-              ? '✓ Сборка успешно завершена'
-              : `✗ Сборка завершилась с кодом ${evt.code ?? '?'}`,
-          ),
-        }
-      }
-      return { i, cls: '', html: ansiConverter.toHtml(evt.text ?? '') }
-    }),
-  [buildLog])
-
-  // Auto-scroll log to bottom
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [buildLog.length])
@@ -50,35 +31,45 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
   const dotClass =
     buildStatus === 'building' ? 'dot-building'
     : buildStatus === 'success' ? 'dot-success'
-    : buildStatus === 'error' ? 'dot-error'
+    : buildStatus === 'error'   ? 'dot-error'
     : 'dot-idle'
 
   const statusLabel =
-    buildStatus === 'building' ? 'Сборка…'
-    : buildStatus === 'success' ? 'Готово'
-    : buildStatus === 'error' ? 'Ошибка'
-    : 'Ожидание'
+    buildStatus === 'building' ? t('preview.log.status.building')
+    : buildStatus === 'success' ? t('preview.log.status.success')
+    : buildStatus === 'error'   ? t('preview.log.status.error')
+    : t('preview.log.status.idle')
+
+  // ansi-to-html conversion is memoised; t() changes trigger re-render automatically
+  const renderedLog = useMemo(() =>
+    buildLog.map((evt, i) => {
+      if (evt.type === 'start') {
+        return { i, cls: 'log-start', html: escapeHtml(evt.text ?? '') }
+      }
+      if (evt.type === 'done') {
+        const msg = evt.success
+          ? t('preview.log.success')
+          : t('preview.log.failed', { code: String(evt.code ?? '?') })
+        return { i, cls: evt.success ? 'log-success' : 'log-error', html: escapeHtml(msg) }
+      }
+      return { i, cls: '', html: ansiConverter.toHtml(evt.text ?? '') }
+    }),
+  // t is stable per lang — including it invalidates memo only on lang change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [buildLog, t])
 
   return (
     <div className="preview-pane">
       <div className="preview-toolbar">
-        <span className="preview-toolbar-title">Предпросмотр</span>
-        <button
-          className="btn btn-green btn-sm"
-          onClick={onBuild}
-          disabled={buildStatus === 'building'}
-        >
+        <span className="preview-toolbar-title">{t('preview.title')}</span>
+        <button className="btn btn-green btn-sm" onClick={onBuild} disabled={buildStatus === 'building'}>
           {buildStatus === 'building'
-            ? <><span className="spinner" /> Сборка…</>
-            : isBuilt ? '🔄 Пересобрать' : '▶ Собрать и запустить'}
+            ? <><span className="spinner" />{t('preview.log.status.building')}</>
+            : isBuilt ? t('preview.rebuildBtn') : t('preview.buildBtn')}
         </button>
         {isBuilt && (
-          <a
-            className="btn btn-sm"
-            href={api.getDownloadUrl(themeId)}
-            download={`${themeId}.zip`}
-          >
-            ⬇ Скачать ZIP
+          <a className="btn btn-sm" href={api.getDownloadUrl(themeId)} download={`${themeId}.zip`}>
+            {t('preview.download')}
           </a>
         )}
       </div>
@@ -91,23 +82,13 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
               key={previewKey}
               src={api.getPreviewUrl(themeId)}
               title="Game Preview"
-              style={{
-                width: '100%',
-                height: '100%',
-                maxWidth: 480,
-                maxHeight: 854,
-                border: 'none',
-              }}
+              style={{ width: '100%', height: '100%', maxWidth: 480, maxHeight: 854, border: 'none' }}
               allow="autoplay"
             />
           ) : (
             <div className="preview-no-build">
               <div className="icon">🎮</div>
-              <p>
-                {buildStatus === 'building'
-                  ? 'Сборка в процессе…'
-                  : 'Нажмите «Собрать», чтобы запустить игру'}
-              </p>
+              <p>{buildStatus === 'building' ? t('preview.building') : t('preview.noBuild')}</p>
             </div>
           )}
         </div>
@@ -116,20 +97,16 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
         <div className="build-log-panel">
           <div className="build-log-header">
             <div className={`build-status-dot ${dotClass}`} />
-            Лог сборки — {statusLabel}
+            {t('preview.log.title')} — {statusLabel}
           </div>
 
           <div className="build-log-output">
             {renderedLog.length === 0 ? (
-              <span style={{ color: 'var(--text-2)' }}>Лог появится после запуска сборки</span>
+              <span style={{ color: 'var(--text-2)' }}>{t('preview.log.empty')}</span>
             ) : (
               renderedLog.map(({ i, cls, html }) => (
-                <div
-                  key={i}
-                  className={`log-line${cls ? ` ${cls}` : ''}`}
-                  // ansi-to-html escapes XML by default; start/done use escapeHtml
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
+                <div key={i} className={`log-line${cls ? ` ${cls}` : ''}`}
+                  dangerouslySetInnerHTML={{ __html: html }} />
               ))
             )}
             <div ref={logEndRef} />
@@ -137,13 +114,9 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
 
           <div className="build-log-footer">
             {isBuilt && buildStatus !== 'building' && (
-              <a
-                className="btn btn-sm"
-                style={{ flex: 1, justifyContent: 'center' }}
-                href={api.getDownloadUrl(themeId)}
-                download={`${themeId}.zip`}
-              >
-                ⬇ Скачать для Yandex Games
+              <a className="btn btn-sm" style={{ flex: 1, justifyContent: 'center' }}
+                href={api.getDownloadUrl(themeId)} download={`${themeId}.zip`}>
+                {t('preview.downloadYandex')}
               </a>
             )}
           </div>

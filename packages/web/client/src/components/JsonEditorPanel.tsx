@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useI18n } from '../i18n'
 import type { Manifest } from '../types'
 
 interface Props {
@@ -7,14 +8,14 @@ interface Props {
 }
 
 export default function JsonEditorPanel({ manifest, onChange }: Props) {
+  const { t } = useI18n()
   const [text, setText] = useState(() => JSON.stringify(manifest, null, 2))
   const [error, setError] = useState<string | null>(null)
 
-  // Sync from parent when manifest changes externally (switching themes)
   useEffect(() => {
     setText(JSON.stringify(manifest, null, 2))
     setError(null)
-  }, [manifest.meta.id]) // only reset when theme changes, not on every edit
+  }, [manifest.meta.id])
 
   function handleApply() {
     try {
@@ -28,8 +29,7 @@ export default function JsonEditorPanel({ manifest, onChange }: Props) {
 
   function handleFormat() {
     try {
-      const parsed = JSON.parse(text)
-      setText(JSON.stringify(parsed, null, 2))
+      setText(JSON.stringify(JSON.parse(text), null, 2))
       setError(null)
     } catch (e) {
       setError((e as Error).message)
@@ -41,21 +41,16 @@ export default function JsonEditorPanel({ manifest, onChange }: Props) {
       <textarea
         spellCheck={false}
         value={text}
-        onChange={e => {
-          setText(e.target.value)
-          setError(null)
-        }}
+        onChange={e => { setText(e.target.value); setError(null) }}
       />
       <div className="json-editor-footer">
         {error ? (
           <span className="json-error">⚠ {error}</span>
         ) : (
-          <span style={{ flex: 1, fontSize: 12, color: 'var(--text-2)' }}>
-            Редактируйте JSON напрямую, затем нажмите «Применить»
-          </span>
+          <span style={{ flex: 1, fontSize: 12, color: 'var(--text-2)' }}>{t('json.hint')}</span>
         )}
-        <button className="btn btn-sm" onClick={handleFormat}>Форматировать</button>
-        <button className="btn btn-primary btn-sm" onClick={handleApply}>Применить</button>
+        <button className="btn btn-sm" onClick={handleFormat}>{t('json.format')}</button>
+        <button className="btn btn-primary btn-sm" onClick={handleApply}>{t('json.apply')}</button>
       </div>
     </div>
   )

@@ -732,6 +732,31 @@ input[type='range'] {
 ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-2); }
 
+/* ── Language switcher ── */
+
+.lang-switcher {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.lang-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: 2px 5px;
+  line-height: 1.4;
+  transition: color 0.1s, border-color 0.1s;
+}
+.lang-btn:hover { color: var(--text-1); border-color: var(--border-light); }
+.lang-btn.active { color: var(--accent); border-color: var(--accent); }
+
 /* ── Spinner ── */
 
 .spinner {

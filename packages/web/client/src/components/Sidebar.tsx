@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import * as api from '../api'
+import { useI18n } from '../i18n'
+import type { LangMeta } from '../i18n'
 import type { ThemeMeta } from '../types'
 
 interface Props {
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDeleted, toast }: Props) {
+  const { t, lang, available, setLang } = useI18n()
   const [showForm, setShowForm] = useState(false)
   const [newId, setNewId] = useState('')
   const [newTitle, setNewTitle] = useState('')
@@ -22,12 +25,13 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
     if (!newId.trim()) return
     setCreating(true)
     try {
-      await api.createTheme(newId.trim().toLowerCase(), newTitle.trim() || newId.trim())
-      toast(`Тема "${newId}" создана`, 'success')
+      const id = newId.trim().toLowerCase()
+      await api.createTheme(id, newTitle.trim() || id)
+      toast(t('sidebar.toast.created', { id }), 'success')
       setShowForm(false)
       setNewId('')
       setNewTitle('')
-      onCreated(newId.trim().toLowerCase())
+      onCreated(id)
     } catch (err) {
       toast((err as Error).message, 'error')
     } finally {
@@ -37,7 +41,7 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
 
   async function handleDelete(e: React.MouseEvent, id: string) {
     e.stopPropagation()
-    if (!confirm(`Удалить тему "${id}"? Это действие необратимо.`)) return
+    if (!confirm(t('sidebar.delete.confirm', { id }))) return
     try {
       await api.deleteTheme(id)
       onDeleted(id)
@@ -46,20 +50,26 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
     }
   }
 
+  function handleLangChange(code: string) {
+    localStorage.setItem('lang', code)
+    setLang(code)
+  }
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <span className="logo">🐦</span>
-        <div>
+        <div style={{ flex: 1 }}>
           <h1>Flappy Forge</h1>
           <small>Game Builder</small>
         </div>
+        <LangSwitcher current={lang} available={available} onChange={handleLangChange} />
       </div>
 
       <div className="sidebar-body">
         {themes.length === 0 && (
           <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-2)', fontSize: 12 }}>
-            Нет тем. Создайте первую!
+            {t('sidebar.noThemes')}
           </div>
         )}
         {themes.map(theme => (
@@ -74,11 +84,11 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
               <div className="theme-item-id">{theme.id}</div>
             </div>
             <span className={`theme-item-badge ${theme.isBuilt ? 'badge-built' : 'badge-draft'}`}>
-              {theme.isBuilt ? 'ready' : 'draft'}
+              {theme.isBuilt ? t('sidebar.badge.ready') : t('sidebar.badge.draft')}
             </span>
             <button
               className="theme-item-del"
-              title="Удалить тему"
+              title="Delete"
               onClick={(e) => void handleDelete(e, theme.id)}
             >
               ×
@@ -90,21 +100,21 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
           <form className="new-theme-form" onSubmit={(e) => void handleCreate(e)}>
             <input
               autoFocus
-              placeholder="id (example-game)"
+              placeholder={t('sidebar.form.idPlaceholder')}
               value={newId}
               onChange={e => setNewId(e.target.value)}
               pattern="[a-z0-9_-]+"
-              title="Только строчные буквы, цифры, дефис"
+              title="Lowercase letters, numbers, hyphens only"
               required
             />
             <input
-              placeholder="Название (необязательно)"
+              placeholder={t('sidebar.form.titlePlaceholder')}
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
             />
             <div className="new-theme-actions">
               <button type="submit" className="btn btn-primary btn-sm" disabled={creating} style={{ flex: 1 }}>
-                {creating ? 'Создание…' : 'Создать'}
+                {creating ? t('sidebar.form.creating') : t('sidebar.form.create')}
               </button>
               <button type="button" className="btn btn-sm" onClick={() => { setShowForm(false); setNewId(''); setNewTitle('') }}>
                 ✕
@@ -117,10 +127,32 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
       <div className="sidebar-footer">
         {!showForm && (
           <button className="btn btn-sm" style={{ width: '100%' }} onClick={() => setShowForm(true)}>
-            + Новая тема
+            {t('sidebar.newTheme')}
           </button>
         )}
       </div>
     </aside>
+  )
+}
+
+function LangSwitcher({ current, available, onChange }: {
+  current: string
+  available: LangMeta[]
+  onChange: (code: string) => void
+}) {
+  if (available.length <= 1) return null
+  return (
+    <div className="lang-switcher">
+      {available.map(l => (
+        <button
+          key={l.code}
+          className={`lang-btn${l.code === current ? ' active' : ''}`}
+          onClick={() => onChange(l.code)}
+          title={l.name}
+        >
+          {l.code.toUpperCase()}
+        </button>
+      ))}
+    </div>
   )
 }
