@@ -1,0 +1,6 @@
+node_modules/
+builds/
+packages/engine/public/assets/
+packages/engine/src/config.ts
+dist/
+packages/web/client/dist/

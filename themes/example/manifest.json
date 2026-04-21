@@ -1,0 +1,306 @@
+{
+  "meta": {
+    "id": "example",
+    "title": "Flappy Example"
+  },
+  "physics": {
+    "gravity": 900,
+    "jumpForce": -380,
+    "speed": 210
+  },
+  "spawn": {
+    "interval": 1800,
+    "gapMin": 140,
+    "gapMax": 220
+  },
+  "assets": {
+    "bg": "assets/bg.png",
+    "player": "assets/player.png",
+    "pipeTop": "assets/pipe-top.png",
+    "pipeBottom": "assets/pipe-bottom.png"
+  },
+  "audio": {
+    "music": {
+      "src": "assets/audio/music-loop.wav",
+      "volume": 0.35,
+      "rate": 1,
+      "loop": true,
+      "autoplay": true
+    },
+    "sfx": {
+      "click": { "src": "assets/audio/click.wav", "volume": 0.6 },
+      "jump": { "src": "assets/audio/jump.wav", "volume": 0.75 },
+      "hit": { "src": "assets/audio/hit.wav", "volume": 0.85 },
+      "coin": { "src": "assets/audio/coin.wav", "volume": 0.8 },
+      "point": { "src": "assets/audio/point.wav", "volume": 0.75 },
+      "gameOver": { "src": "assets/audio/game-over.wav", "volume": 0.85 }
+    },
+    "bindings": {
+      "menu:start:click": "click",
+      "menu:leaderboard:click": "click",
+      "menu:mute:toggle": "click",
+      "menu:custom:toggle": "click",
+      "leaderboard:back:click": "click",
+      "game:retry:click": "click",
+      "game:menu:click": "click",
+      "player:jump": "jump",
+      "coin:collected": "coin",
+      "obstacle:passed": "point",
+      "player:collision": "hit",
+      "game:over": "gameOver"
+    }
+  },
+  "player": {
+    "width": 44,
+    "height": 32
+  },
+  "canvas": {
+    "width": 540,
+    "height": 960,
+    "backgroundColor": "#1e3c56",
+    "scale": {
+      "mode": "FIT",
+      "autoCenter": "CENTER_BOTH",
+      "zoom": 1
+    }
+  },
+  "menu": {
+    "start": {
+      "text": "START",
+      "y": 0.45,
+      "style": {
+        "text": {
+          "color": "#f9fdff",
+          "stroke": "#00313f"
+        }
+      }
+    },
+    "mute": {
+      "text": "SOUND",
+      "y": 0.58,
+      "style": {
+        "text": {
+          "color": "#f1fbff",
+          "stroke": "#102736"
+        }
+      }
+    },
+    "leaderboard": {
+      "text": "LEADERBOARD",
+      "y": 0.7,
+      "style": {
+        "text": {
+          "color": "#fff8d8",
+          "stroke": "#483600"
+        }
+      }
+    }
+  },
+  "gameOver": {
+    "title": "YOU CRASHED",
+    "scoreLabel": "RUN",
+    "bestLabel": "BEST RUN",
+    "newBestLabel": "NEW RECORD",
+    "background": {
+      "color": "#1b1b1b",
+      "alpha": 0.95,
+      "strokeColor": "#ff0000",
+      "strokeAlpha": 0.2,
+      "strokeWidth": 3
+    },
+    "retry": {
+      "text": "TRY AGAIN",
+      "y": 0.62,
+      "style": {
+        "text": {
+          "color": "#ffffff",
+          "stroke": "#0f0f0f"
+        }
+      }
+    },
+    "menu": {
+      "text": "MAIN MENU",
+      "y": 0.72,
+      "style": {
+        "text": {
+          "color": "#fff2c4",
+          "stroke": "#523a00"
+        }
+      }
+    }
+  },
+  "ui": {
+    "text": {
+      "fontFamily": "Verdana",
+      "stroke": "#000000"
+    },
+    "button": {
+      "text": {
+        "fontFamily": "Courier New",
+        "fontSize": 30,
+        "color": "#ffffff",
+        "backgroundColor": "#3f3f3f",
+        "padding": { "left": 24, "right": 24, "top": 12, "bottom": 12 },
+        "stroke": "#000000",
+        "strokeThickness": 2
+      },
+      "hoverText": {
+        "backgroundColor": "#5d5d5d"
+      },
+      "imageHoverTint": "#dcdcdc",
+      "disabledAlpha": 0.45
+    },
+    "screens": {
+      "menu": {
+        "overlayColor": "#000000",
+        "overlayAlpha": 0.4,
+        "titleStyle": {
+          "fontFamily": "Impact",
+          "fontSize": 46,
+          "color": "#ffffff",
+          "stroke": "#000000",
+          "strokeThickness": 7
+        },
+        "muteButtonStyle": {
+          "hoverText": { "backgroundColor": "#707070" }
+        },
+        "customButtonStyle": {
+          "text": {
+            "fontSize": 24
+          }
+        }
+      },
+      "game": {
+        "scoreStyle": {
+          "fontFamily": "Courier New",
+          "fontSize": 30,
+          "color": "#f4f8ff",
+          "stroke": "#001b2b",
+          "strokeThickness": 4
+        }
+      },
+      "gameOver": {
+        "overlayColor": "#000000",
+        "overlayAlpha": 0.68,
+        "panel": {
+          "width": 0.82,
+          "height": 0.66,
+          "padding": 14,
+          "background": {
+            "color": "#16181d",
+            "alpha": 0.95,
+            "strokeColor": "#ffffff",
+            "strokeAlpha": 0.22,
+            "strokeWidth": 3
+          }
+        },
+        "titleStyle": {
+          "fontFamily": "Impact",
+          "fontSize": 48
+        },
+        "scoreStyle": {
+          "fontFamily": "Courier New",
+          "fontSize": 34
+        },
+        "bestStyle": {
+          "fontFamily": "Courier New",
+          "fontSize": 32,
+          "color": "#ffd94a"
+        },
+        "badgeStyle": {
+          "fontFamily": "Impact",
+          "fontSize": 24,
+          "color": "#72ff9d"
+        },
+        "buttonStyle": {
+          "text": {
+            "fontFamily": "Courier New",
+            "fontSize": 32,
+            "backgroundColor": "#4a4a4a"
+          },
+          "hoverText": {
+            "backgroundColor": "#686868"
+          }
+        }
+      },
+      "leaderboard": {
+        "overlayColor": "#07101c",
+        "overlayAlpha": 0.72,
+        "panel": {
+          "width": 0.92,
+          "height": 0.86,
+          "padding": 16,
+          "background": {
+            "color": "#12151a",
+            "alpha": 0.93,
+            "strokeColor": "#ffffff",
+            "strokeAlpha": 0.2,
+            "strokeWidth": 2
+          }
+        },
+        "texts": {
+          "title": "PILOTS RANKING",
+          "back": "GO BACK",
+          "loading": "Syncing leaderboard...",
+          "unavailable": "Leaderboard works only\non Yandex Games",
+          "empty": "No pilots yet",
+          "columnRank": "RANK",
+          "columnPlayer": "PILOT",
+          "columnScore": "RUN"
+        },
+        "titleStyle": {
+          "fontFamily": "Impact",
+          "fontSize": 38
+        },
+        "backButton": {
+          "text": "MAIN MENU",
+          "y": 0.9,
+          "style": {
+            "text": {
+              "color": "#fef4c6",
+              "stroke": "#4f3d00"
+            }
+          }
+        },
+        "backButtonStyle": {
+          "text": {
+            "fontSize": 26
+          }
+        },
+        "loadingStyle": {
+          "fontSize": 24,
+          "color": "#ffffff"
+        },
+        "messageStyle": {
+          "fontSize": 22,
+          "color": "#cccccc",
+          "align": "center"
+        },
+        "headerStyle": {
+          "fontSize": 19,
+          "color": "#9fb0c6"
+        },
+        "rankStyle": {
+          "fontSize": 22
+        },
+        "nameStyle": {
+          "fontSize": 22
+        },
+        "scoreStyle": {
+          "fontSize": 22,
+          "color": "#ffe27a"
+        },
+        "startY": 0.24,
+        "rowHeight": 42,
+        "columns": {
+          "rankX": 0.1,
+          "nameX": 0.22,
+          "scoreX": 0.9
+        }
+      }
+    }
+  },
+  "leaderboard": {
+    "name": "main"
+  }
+}

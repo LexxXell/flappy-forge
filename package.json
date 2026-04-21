@@ -1,0 +1,19 @@
+{
+  "name": "flappy-forge",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build:theme": "tsx packages/builder/src/index.ts",
+    "build:all": "tsx packages/builder/src/index.ts --all",
+    "web": "npm run dev -w packages/web",
+    "web:server": "node_modules/.bin/tsx packages/web/src/server.ts",
+    "web:client": "node_modules/.bin/vite packages/web/client --config packages/web/client/vite.config.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.4.0"
+  }
+}
