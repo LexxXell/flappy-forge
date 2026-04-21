@@ -63,11 +63,19 @@ export async function deleteAsset(themeId: string, relPath: string): Promise<voi
 
 export function startBuild(id: string, onEvent: (e: BuildEvent) => void): () => void {
   const es = new EventSource(`${BASE}/themes/${id}/build`)
+  let finished = false
+
   es.onmessage = (e) => {
-    try { onEvent(JSON.parse(e.data as string) as BuildEvent) } catch {}
+    try {
+      const evt = JSON.parse(e.data as string) as BuildEvent
+      if (evt.type === 'done') finished = true
+      onEvent(evt)
+    } catch {}
   }
+  // EventSource fires onerror both on real errors AND when server closes
+  // the connection normally. Only report failure if we never got a done event.
   es.onerror = () => {
-    onEvent({ type: 'done', code: -1, success: false })
+    if (!finished) onEvent({ type: 'done', code: -1, success: false })
     es.close()
   }
   return () => es.close()
