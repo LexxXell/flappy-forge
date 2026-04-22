@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import * as api from './api'
 import { useI18n } from './i18n'
 
@@ -12,10 +12,22 @@ export default function GamesGallery({ onShowLogin }: Props) {
   const { t } = useI18n()
   const [games, setGames] = useState<Game[]>([])
   const [selected, setSelected] = useState<Game | null>(null)
+  const [loadError, setLoadError] = useState('')
+
+  const loadGames = useCallback(async () => {
+    setLoadError('')
+    try {
+      const list = await api.getGames()
+      setGames(list)
+      if (selected && !list.some(g => g.id === selected.id)) setSelected(null)
+    } catch {
+      setLoadError(t('gallery.loadError'))
+    }
+  }, [selected, t])
 
   useEffect(() => {
-    api.getGames().then(setGames).catch(() => {})
-  }, [])
+    void loadGames()
+  }, [loadGames])
 
   return (
     <div className="gallery-layout">
@@ -29,9 +41,17 @@ export default function GamesGallery({ onShowLogin }: Props) {
         </div>
 
         <div className="sidebar-body">
-          {games.length === 0 ? (
+          {loadError ? (
+            <div style={{ padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="login-error" style={{ margin: 0 }}>{loadError}</div>
+              <button className="btn btn-sm" onClick={() => void loadGames()}>
+                {t('gallery.retry')}
+              </button>
+            </div>
+          ) : games.length === 0 ? (
             <div style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--text-2)', fontSize: 12 }}>
-              {t('gallery.noGames')}
+              <div>{t('gallery.noGames')}</div>
+              <div style={{ marginTop: 8, fontSize: 11 }}>{t('gallery.noGamesHint')}</div>
             </div>
           ) : (
             games.map(g => (

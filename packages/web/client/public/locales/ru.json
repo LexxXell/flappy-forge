@@ -128,7 +128,10 @@
   "preview.log.status.error": "Ошибка",
   "preview.downloadYandex": "⬇ Скачать для Yandex Games",
 
-  "gallery.noGames": "Нет доступных игр",
+  "gallery.noGames": "Пока нет опубликованных игр",
+  "gallery.noGamesHint": "Соберите тему в редакторе, чтобы она появилась здесь",
+  "gallery.loadError": "Не удалось загрузить список игр. Запустите web-сервер на порту 3000.",
+  "gallery.retry": "Повторить",
   "gallery.selectTitle": "Выберите игру",
   "gallery.selectDesc": "Выберите игру из списка, чтобы начать",
 

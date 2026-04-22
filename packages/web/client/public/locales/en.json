@@ -128,7 +128,10 @@
   "preview.log.status.error": "Error",
   "preview.downloadYandex": "⬇ Download for Yandex Games",
 
-  "gallery.noGames": "No games available yet",
+  "gallery.noGames": "No published games yet",
+  "gallery.noGamesHint": "Build a theme in the editor to publish it here",
+  "gallery.loadError": "Cannot load games list. Start web server on port 3000.",
+  "gallery.retry": "Retry",
   "gallery.selectTitle": "Select a game",
   "gallery.selectDesc": "Choose a game from the list to play",
 

@@ -47,7 +47,8 @@ export async function attemptLogin(username: string, password: string): Promise<
     return password === OWNER_PASSWORD ? sign(username, 'owner') : null
   }
   const user = findByUsername(username)
-  if (!user) return null
+  // Unknown usernames are treated as default "user" role (no registration needed).
+  if (!user) return sign(username, 'user')
   const ok = await bcrypt.compare(password, user.passwordHash)
   return ok ? sign(username, user.role) : null
 }

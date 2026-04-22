@@ -19,8 +19,9 @@ interface Toast { id: number; text: string; kind: 'success' | 'error' | 'info' }
 let _toastId = 0
 
 export default function App() {
-  const { t } = useI18n()
+  const { t, lang } = useI18n()
   const { user, logout } = useAuth()
+  const canAccessEditor = Boolean(user && user.role !== 'user')
 
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -36,15 +37,7 @@ export default function App() {
   const [showUsers, setShowUsers] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const stopBuildRef = useRef<(() => void) | null>(null)
-
-  if (!user) {
-    return (
-      <>
-        <GamesGallery onShowLogin={() => setShowLogin(true)} />
-        {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
-      </>
-    )
-  }
+  const prevAuthedRef = useRef(Boolean(user))
 
   const toast = useCallback((text: string, kind: Toast['kind'] = 'info') => {
     const id = ++_toastId
@@ -53,11 +46,36 @@ export default function App() {
   }, [])
 
   const loadThemes = useCallback(async () => {
-    if (!user) return
+    if (!canAccessEditor) return
     try { setThemes(await api.getThemes()) } catch {}
-  }, [user])
+  }, [canAccessEditor])
 
   useEffect(() => { void loadThemes() }, [loadThemes])
+
+  useEffect(() => {
+    const isAuthed = Boolean(user)
+    if (prevAuthedRef.current === isAuthed) return
+
+    const rootPath = `/${lang}/`
+    if (window.location.pathname !== rootPath) {
+      history.replaceState(null, '', rootPath)
+    }
+
+    if (!isAuthed) {
+      if (stopBuildRef.current) {
+        stopBuildRef.current()
+        stopBuildRef.current = null
+      }
+      setSelectedId(null)
+      setManifest(null)
+      setAssets([])
+      setBuildLog([])
+      setBuildStatus('idle')
+      setShowUsers(false)
+    }
+
+    prevAuthedRef.current = isAuthed
+  }, [lang, user])
 
   const selectTheme = useCallback(async (id: string) => {
     if (stopBuildRef.current) { stopBuildRef.current(); stopBuildRef.current = null }
@@ -149,6 +167,15 @@ export default function App() {
   }
 
   const canDownload = user?.role === 'owner' || user?.role === 'admin'
+
+  if (!user || user.role === 'user') {
+    return (
+      <>
+        <GamesGallery key={user?.sub ?? 'guest'} onShowLogin={() => setShowLogin(true)} />
+        {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
+      </>
+    )
+  }
 
   return (
     <div className="app">
