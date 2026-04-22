@@ -1011,12 +1011,3 @@ input[type='range'] {
   display: block;
 }
 
-.gallery-login-btn {
-  position: fixed;
-  bottom: 16px;
-  right: 16px;
-  z-index: 100;
-  opacity: 0.4;
-  transition: opacity 0.2s;
-}
-.gallery-login-btn:hover { opacity: 1; }

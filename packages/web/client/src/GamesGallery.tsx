@@ -4,7 +4,11 @@ import { useI18n } from './i18n'
 
 interface Game { id: string; title: string }
 
-export default function GamesGallery() {
+interface Props {
+  onShowLogin: () => void
+}
+
+export default function GamesGallery({ onShowLogin }: Props) {
   const { t } = useI18n()
   const [games, setGames] = useState<Game[]>([])
   const [selected, setSelected] = useState<Game | null>(null)
@@ -44,6 +48,12 @@ export default function GamesGallery() {
               </div>
             ))
           )}
+        </div>
+
+        <div className="sidebar-footer">
+          <button className="btn btn-sm" style={{ width: '100%' }} onClick={onShowLogin}>
+            {t('auth.login')}
+          </button>
         </div>
       </aside>
 

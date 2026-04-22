@@ -40,13 +40,7 @@ export default function App() {
   if (!user) {
     return (
       <>
-        <GamesGallery />
-        <button
-          className="gallery-login-btn btn btn-sm"
-          onClick={() => setShowLogin(true)}
-        >
-          {t('auth.login')}
-        </button>
+        <GamesGallery onShowLogin={() => setShowLogin(true)} />
         {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
       </>
     )
