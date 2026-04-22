@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { useAuth } from './AuthContext'
 import { useI18n } from './i18n'
 
-export default function LoginPage() {
+interface Props {
+  onClose: () => void
+}
+
+export default function LoginPage({ onClose }: Props) {
   const { login } = useAuth()
   const { t } = useI18n()
   const [username, setUsername] = useState('')
@@ -16,6 +20,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await login(username, password)
+      onClose()
     } catch (err) {
       setError((err as Error).message)
     } finally {
@@ -24,8 +29,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="login-overlay">
-      <form className="login-card" onSubmit={(e) => void handleSubmit(e)}>
+    <div className="modal-overlay" onClick={onClose}>
+      <form className="login-card" onSubmit={(e) => void handleSubmit(e)} onClick={e => e.stopPropagation()}>
         <div className="login-logo">
           <span>🐦</span>
           <h1>Flappy Forge</h1>

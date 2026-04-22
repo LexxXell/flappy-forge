@@ -33,9 +33,8 @@ export default function App() {
   const [previewKey, setPreviewKey] = useState(0)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [showUsers, setShowUsers] = useState(false)
+  const [showLogin, setShowLogin] = useState(false)
   const stopBuildRef = useRef<(() => void) | null>(null)
-
-  if (!user) return <LoginPage />
 
   const toast = useCallback((text: string, kind: Toast['kind'] = 'info') => {
     const id = ++_toastId
@@ -44,8 +43,9 @@ export default function App() {
   }, [])
 
   const loadThemes = useCallback(async () => {
+    if (!user) return
     try { setThemes(await api.getThemes()) } catch {}
-  }, [])
+  }, [user])
 
   useEffect(() => { void loadThemes() }, [loadThemes])
 
@@ -138,7 +138,7 @@ export default function App() {
     json: t('tab.json'),
   }
 
-  const canDownload = user.role === 'owner' || user.role === 'admin'
+  const canDownload = user?.role === 'owner' || user?.role === 'admin'
 
   return (
     <div className="app">
@@ -160,6 +160,7 @@ export default function App() {
         user={user}
         onLogout={logout}
         onShowUsers={() => setShowUsers(true)}
+        onShowLogin={() => setShowLogin(true)}
       />
 
       <div className="main">
@@ -248,6 +249,7 @@ export default function App() {
       </div>
 
       {showUsers && <UsersPanel onClose={() => setShowUsers(false)} />}
+      {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
     </div>
   )
 }

@@ -11,12 +11,13 @@ interface Props {
   onCreated: (id: string) => void
   onDeleted: (id: string) => void
   toast: (text: string, kind?: 'success' | 'error' | 'info') => void
-  user: TokenPayload
+  user: TokenPayload | null
   onLogout: () => void
   onShowUsers: () => void
+  onShowLogin: () => void
 }
 
-export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDeleted, toast, user, onLogout, onShowUsers }: Props) {
+export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDeleted, toast, user, onLogout, onShowUsers, onShowLogin }: Props) {
   const { t, lang, available, setLang } = useI18n()
   const [showForm, setShowForm] = useState(false)
   const [newId, setNewId] = useState('')
@@ -58,7 +59,7 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
     setLang(code)
   }
 
-  const isOwner = user.role === 'owner'
+  const isOwner = user?.role === 'owner'
 
   return (
     <aside className="sidebar">
@@ -133,27 +134,33 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
       </div>
 
       <div className="sidebar-footer">
-        {!showForm && (
+        {user && !showForm && (
           <button className="btn btn-sm" style={{ width: '100%' }} onClick={() => setShowForm(true)}>
             {t('sidebar.newTheme')}
           </button>
         )}
-        <div className="user-bar">
-          <div className="user-bar-info">
-            <span className="user-bar-name">{user.sub}</span>
-            <span className={`role-badge role-${user.role}`}>{user.role}</span>
-          </div>
-          <div className="user-bar-actions">
-            {isOwner && (
-              <button className="btn btn-sm" onClick={onShowUsers} title={t('users.title')}>
-                👥
+        {user ? (
+          <div className="user-bar">
+            <div className="user-bar-info">
+              <span className="user-bar-name">{user.sub}</span>
+              <span className={`role-badge role-${user.role}`}>{user.role}</span>
+            </div>
+            <div className="user-bar-actions">
+              {isOwner && (
+                <button className="btn btn-sm" onClick={onShowUsers} title={t('users.title')}>
+                  👥
+                </button>
+              )}
+              <button className="btn btn-sm" onClick={onLogout} title={t('auth.logout')}>
+                ↩
               </button>
-            )}
-            <button className="btn btn-sm" onClick={onLogout} title={t('auth.logout')}>
-              ↩
-            </button>
+            </div>
           </div>
-        </div>
+        ) : (
+          <button className="btn btn-sm" style={{ width: '100%' }} onClick={onShowLogin}>
+            {t('auth.login')}
+          </button>
+        )}
       </div>
     </aside>
   )
