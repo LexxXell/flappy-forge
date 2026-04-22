@@ -128,6 +128,10 @@
   "preview.log.status.error": "Error",
   "preview.downloadYandex": "⬇ Download for Yandex Games",
 
+  "gallery.noGames": "No games available yet",
+  "gallery.selectTitle": "Select a game",
+  "gallery.selectDesc": "Choose a game from the list to play",
+
   "auth.username": "Username",
   "auth.password": "Password",
   "auth.login": "Log In",

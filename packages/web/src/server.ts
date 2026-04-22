@@ -46,6 +46,27 @@ app.use('/preview/:theme', (req, res, next) => {
 })
 
 // ---------------------------------------------------------------------------
+// Public: list of built games (for anonymous users)
+// ---------------------------------------------------------------------------
+
+app.get('/api/games', (_req, res) => {
+  if (!fs.existsSync(THEMES_DIR)) return res.json([])
+  const dirs = fs.readdirSync(THEMES_DIR).filter(d =>
+    fs.statSync(path.join(THEMES_DIR, d)).isDirectory() &&
+    fs.existsSync(path.join(BUILDS_DIR, d))
+  )
+  const result = dirs.map(id => {
+    let title = id
+    try {
+      const m = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, 'manifest.json'), 'utf-8'))
+      title = m?.meta?.title ?? id
+    } catch {}
+    return { id, title }
+  })
+  res.json(result)
+})
+
+// ---------------------------------------------------------------------------
 // Auth routes (public)
 // ---------------------------------------------------------------------------
 

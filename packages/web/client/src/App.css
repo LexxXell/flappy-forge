@@ -976,3 +976,47 @@ input[type='range'] {
 }
 .user-create-row input:focus,
 .user-create-row select:focus { border-color: var(--accent); }
+
+/* ── Games Gallery (anonymous view) ── */
+
+.gallery-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.gallery-sidebar {
+  width: 220px;
+  min-width: 220px;
+  background: var(--bg-1);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.gallery-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-0);
+  overflow: hidden;
+}
+
+.gallery-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.gallery-login-btn {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  z-index: 100;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.gallery-login-btn:hover { opacity: 1; }

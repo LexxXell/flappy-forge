@@ -99,6 +99,14 @@ export async function deleteUser(id: number): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
+// Public games list (no auth)
+// ---------------------------------------------------------------------------
+
+export async function getGames(): Promise<{ id: string; title: string }[]> {
+  return json(await fetch(`${BASE}/games`))
+}
+
+// ---------------------------------------------------------------------------
 // Theme API
 // ---------------------------------------------------------------------------
 

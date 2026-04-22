@@ -10,6 +10,7 @@ import JsonEditorPanel from './components/JsonEditorPanel'
 import PreviewPanel from './components/PreviewPanel'
 import LoginPage from './LoginPage'
 import UsersPanel from './UsersPanel'
+import GamesGallery from './GamesGallery'
 
 type Tab = 'basic' | 'assets' | 'json'
 
@@ -35,6 +36,21 @@ export default function App() {
   const [showUsers, setShowUsers] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const stopBuildRef = useRef<(() => void) | null>(null)
+
+  if (!user) {
+    return (
+      <>
+        <GamesGallery />
+        <button
+          className="gallery-login-btn btn btn-sm"
+          onClick={() => setShowLogin(true)}
+        >
+          {t('auth.login')}
+        </button>
+        {showLogin && <LoginPage onClose={() => setShowLogin(false)} />}
+      </>
+    )
+  }
 
   const toast = useCallback((text: string, kind: Toast['kind'] = 'info') => {
     const id = ++_toastId

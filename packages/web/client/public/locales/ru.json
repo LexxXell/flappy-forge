@@ -128,6 +128,10 @@
   "preview.log.status.error": "Ошибка",
   "preview.downloadYandex": "⬇ Скачать для Yandex Games",
 
+  "gallery.noGames": "Нет доступных игр",
+  "gallery.selectTitle": "Выберите игру",
+  "gallery.selectDesc": "Выберите игру из списка, чтобы начать",
+
   "auth.username": "Имя пользователя",
   "auth.password": "Пароль",
   "auth.login": "Войти",
