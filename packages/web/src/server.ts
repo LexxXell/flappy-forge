@@ -92,7 +92,7 @@ app.get('/api/users', authenticate, requireRole('admin'), (_req, res) => {
   res.json(listUsers())
 })
 
-app.post('/api/users', authenticate, requireRole('owner'), async (req: AuthReq, res) => {
+app.post('/api/users', authenticate, requireRole('admin'), async (req: AuthReq, res) => {
   const { username, password, role } = req.body as {
     username?: string; password?: string; role?: string
   }
@@ -101,6 +101,9 @@ app.post('/api/users', authenticate, requireRole('owner'), async (req: AuthReq, 
   }
   if (role !== 'admin' && role !== 'creator') {
     return res.status(400).json({ error: 'role must be admin or creator' })
+  }
+  if (req.user!.role === 'admin' && role !== 'creator') {
+    return res.status(403).json({ error: 'Admins can create only creator users' })
   }
   if (findByUsername(username)) {
     return res.status(409).json({ error: `User "${username}" already exists` })

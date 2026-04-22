@@ -59,7 +59,7 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
     setLang(code)
   }
 
-  const isOwner = user?.role === 'owner'
+  const canManageUsers = user?.role === 'owner' || user?.role === 'admin'
 
   return (
     <aside className="sidebar">
@@ -146,7 +146,7 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
               <span className={`role-badge role-${user.role}`}>{user.role}</span>
             </div>
             <div className="user-bar-actions">
-              {isOwner && (
+              {canManageUsers && (
                 <button className="btn btn-sm" onClick={onShowUsers} title={t('users.title')}>
                   👥
                 </button>

@@ -1,0 +1,12 @@
+.git
+.gitignore
+.claude
+.codex
+node_modules
+packages/*/node_modules
+dist
+builds
+packages/web/client/dist
+.env
+npm-debug.log*
+yarn-error.log*

@@ -1,0 +1,17 @@
+services:
+  flappy-forge:
+    container_name: flappy-forge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./themes:/app/themes
+      - ./builds:/app/builds
+      - ./packages/web/data:/app/packages/web/data

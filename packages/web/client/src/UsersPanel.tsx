@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import * as api from './api'
 import { useI18n } from './i18n'
+import { useAuth } from './AuthContext'
 import type { UserInfo } from './types'
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 
 export default function UsersPanel({ onClose }: Props) {
   const { t } = useI18n()
+  const { user } = useAuth()
   const [users, setUsers] = useState<UserInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -18,6 +20,7 @@ export default function UsersPanel({ onClose }: Props) {
   const [newRole, setNewRole] = useState<'admin' | 'creator'>('creator')
   const [creating, setCreating] = useState(false)
   const [formError, setFormError] = useState('')
+  const isOwner = user?.role === 'owner'
 
   async function loadUsers() {
     setLoading(true)
@@ -38,7 +41,7 @@ export default function UsersPanel({ onClose }: Props) {
     setFormError('')
     setCreating(true)
     try {
-      await api.createUser(newUsername.trim(), newPassword, newRole)
+      await api.createUser(newUsername.trim(), newPassword, isOwner ? newRole : 'creator')
       setNewUsername('')
       setNewPassword('')
       setNewRole('creator')
@@ -80,27 +83,29 @@ export default function UsersPanel({ onClose }: Props) {
                   <th>{t('users.col.username')}</th>
                   <th>{t('users.col.role')}</th>
                   <th>{t('users.col.createdBy')}</th>
-                  <th></th>
+                  {isOwner && <th></th>}
                 </tr>
               </thead>
               <tbody>
                 {users.length === 0 && (
-                  <tr><td colSpan={4} style={{ textAlign: 'center', color: 'var(--text-2)' }}>{t('users.empty')}</td></tr>
+                  <tr><td colSpan={isOwner ? 4 : 3} style={{ textAlign: 'center', color: 'var(--text-2)' }}>{t('users.empty')}</td></tr>
                 )}
                 {users.map(u => (
                   <tr key={u.id}>
                     <td>{u.username}</td>
                     <td><span className={`role-badge role-${u.role}`}>{u.role}</span></td>
                     <td style={{ color: 'var(--text-2)', fontSize: 12 }}>{u.createdBy}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm"
-                        style={{ color: 'var(--red, #f85149)' }}
-                        onClick={() => void handleDelete(u.id, u.username)}
-                      >
-                        ✕
-                      </button>
-                    </td>
+                    {isOwner && (
+                      <td>
+                        <button
+                          className="btn btn-sm"
+                          style={{ color: 'var(--red, #f85149)' }}
+                          onClick={() => void handleDelete(u.id, u.username)}
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -125,10 +130,16 @@ export default function UsersPanel({ onClose }: Props) {
                 required
                 minLength={4}
               />
-              <select value={newRole} onChange={e => setNewRole(e.target.value as 'admin' | 'creator')}>
-                <option value="creator">creator</option>
-                <option value="admin">admin</option>
-              </select>
+              {isOwner ? (
+                <select value={newRole} onChange={e => setNewRole(e.target.value as 'admin' | 'creator')}>
+                  <option value="creator">creator</option>
+                  <option value="admin">admin</option>
+                </select>
+              ) : (
+                <select value="creator" disabled>
+                  <option value="creator">creator</option>
+                </select>
+              )}
               <button type="submit" className="btn btn-primary btn-sm" disabled={creating}>
                 {creating ? t('users.create.creating') : t('users.create.add')}
               </button>
