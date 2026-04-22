@@ -10,6 +10,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
+    allowedHosts: true,
     proxy: {
       '/api': 'http://localhost:3000',
       '/preview': 'http://localhost:3000',
