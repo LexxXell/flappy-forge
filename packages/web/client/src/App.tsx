@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as api from './api'
+import { useAuth } from './AuthContext'
 import { useI18n } from './i18n'
 import type { BuildEvent, Manifest, ThemeMeta } from './types'
 import Sidebar from './components/Sidebar'
@@ -7,6 +8,8 @@ import BasicSettings from './components/BasicSettings'
 import AssetsPanel from './components/AssetsPanel'
 import JsonEditorPanel from './components/JsonEditorPanel'
 import PreviewPanel from './components/PreviewPanel'
+import LoginPage from './LoginPage'
+import UsersPanel from './UsersPanel'
 
 type Tab = 'basic' | 'assets' | 'json'
 
@@ -16,6 +19,7 @@ let _toastId = 0
 
 export default function App() {
   const { t } = useI18n()
+  const { user, logout } = useAuth()
 
   const [themes, setThemes] = useState<ThemeMeta[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -28,7 +32,10 @@ export default function App() {
   const [buildStatus, setBuildStatus] = useState<'idle' | 'building' | 'success' | 'error'>('idle')
   const [previewKey, setPreviewKey] = useState(0)
   const [toasts, setToasts] = useState<Toast[]>([])
+  const [showUsers, setShowUsers] = useState(false)
   const stopBuildRef = useRef<(() => void) | null>(null)
+
+  if (!user) return <LoginPage />
 
   const toast = useCallback((text: string, kind: Toast['kind'] = 'info') => {
     const id = ++_toastId
@@ -131,6 +138,8 @@ export default function App() {
     json: t('tab.json'),
   }
 
+  const canDownload = user.role === 'owner' || user.role === 'admin'
+
   return (
     <div className="app">
       <Sidebar
@@ -148,6 +157,9 @@ export default function App() {
           toast(t('toast.themeDeleted'), 'info')
         }}
         toast={toast}
+        user={user}
+        onLogout={logout}
+        onShowUsers={() => setShowUsers(true)}
       />
 
       <div className="main">
@@ -223,16 +235,19 @@ export default function App() {
               buildLog={buildLog}
               buildStatus={buildStatus}
               onBuild={handleBuild}
+              canDownload={canDownload}
             />
           </>
         )}
       </div>
 
       <div className="toast-container">
-        {toasts.map(toast => (
-          <div key={toast.id} className={`toast toast-${toast.kind}`}>{toast.text}</div>
+        {toasts.map(t => (
+          <div key={t.id} className={`toast toast-${t.kind}`}>{t.text}</div>
         ))}
       </div>
+
+      {showUsers && <UsersPanel onClose={() => setShowUsers(false)} />}
     </div>
   )
 }

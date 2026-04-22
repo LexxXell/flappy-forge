@@ -3,6 +3,22 @@ export interface ThemeMeta {
   title: string
   hasManifest: boolean
   isBuilt: boolean
+  createdBy?: string
+}
+
+export interface UserInfo {
+  id: number
+  username: string
+  role: 'admin' | 'creator'
+  createdBy: string
+  createdAt: string
+}
+
+export interface TokenPayload {
+  sub: string
+  role: 'owner' | 'admin' | 'creator' | 'user'
+  iat?: number
+  exp?: number
 }
 
 export interface BuildEvent {

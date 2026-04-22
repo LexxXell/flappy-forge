@@ -18,9 +18,10 @@ interface Props {
   buildLog: BuildEvent[]
   buildStatus: 'idle' | 'building' | 'success' | 'error'
   onBuild: () => void
+  canDownload: boolean
 }
 
-export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, buildStatus, onBuild }: Props) {
+export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, buildStatus, onBuild, canDownload }: Props) {
   const { t } = useI18n()
   const logEndRef = useRef<HTMLDivElement>(null)
 
@@ -67,7 +68,7 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
             ? <><span className="spinner" />{t('preview.log.status.building')}</>
             : isBuilt ? t('preview.rebuildBtn') : t('preview.buildBtn')}
         </button>
-        {isBuilt && (
+        {isBuilt && canDownload && (
           <a className="btn btn-sm" href={api.getDownloadUrl(themeId)} download={`${themeId}.zip`}>
             {t('preview.download')}
           </a>
@@ -113,7 +114,7 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
           </div>
 
           <div className="build-log-footer">
-            {isBuilt && buildStatus !== 'building' && (
+            {isBuilt && canDownload && buildStatus !== 'building' && (
               <a className="btn btn-sm" style={{ flex: 1, justifyContent: 'center' }}
                 href={api.getDownloadUrl(themeId)} download={`${themeId}.zip`}>
                 {t('preview.downloadYandex')}

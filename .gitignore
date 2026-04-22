@@ -4,3 +4,4 @@ packages/engine/public/assets/
 packages/engine/src/config.ts
 dist/
 packages/web/client/dist/
+packages/web/data/

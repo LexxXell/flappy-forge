@@ -2,7 +2,7 @@ import { useState } from 'react'
 import * as api from '../api'
 import { useI18n } from '../i18n'
 import type { LangMeta } from '../i18n'
-import type { ThemeMeta } from '../types'
+import type { ThemeMeta, TokenPayload } from '../types'
 
 interface Props {
   themes: ThemeMeta[]
@@ -11,9 +11,12 @@ interface Props {
   onCreated: (id: string) => void
   onDeleted: (id: string) => void
   toast: (text: string, kind?: 'success' | 'error' | 'info') => void
+  user: TokenPayload
+  onLogout: () => void
+  onShowUsers: () => void
 }
 
-export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDeleted, toast }: Props) {
+export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDeleted, toast, user, onLogout, onShowUsers }: Props) {
   const { t, lang, available, setLang } = useI18n()
   const [showForm, setShowForm] = useState(false)
   const [newId, setNewId] = useState('')
@@ -55,6 +58,8 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
     setLang(code)
   }
 
+  const isOwner = user.role === 'owner'
+
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
@@ -81,7 +86,10 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
             <span className="theme-item-icon">{theme.isBuilt ? '🎮' : '📝'}</span>
             <div className="theme-item-info">
               <div className="theme-item-title">{theme.title}</div>
-              <div className="theme-item-id">{theme.id}</div>
+              <div className="theme-item-id">
+                {theme.id}
+                {theme.createdBy && <span className="theme-creator"> · {theme.createdBy}</span>}
+              </div>
             </div>
             <span className={`theme-item-badge ${theme.isBuilt ? 'badge-built' : 'badge-draft'}`}>
               {theme.isBuilt ? t('sidebar.badge.ready') : t('sidebar.badge.draft')}
@@ -130,6 +138,22 @@ export default function Sidebar({ themes, selectedId, onSelect, onCreated, onDel
             {t('sidebar.newTheme')}
           </button>
         )}
+        <div className="user-bar">
+          <div className="user-bar-info">
+            <span className="user-bar-name">{user.sub}</span>
+            <span className={`role-badge role-${user.role}`}>{user.role}</span>
+          </div>
+          <div className="user-bar-actions">
+            {isOwner && (
+              <button className="btn btn-sm" onClick={onShowUsers} title={t('users.title')}>
+                👥
+              </button>
+            )}
+            <button className="btn btn-sm" onClick={onLogout} title={t('auth.logout')}>
+              ↩
+            </button>
+          </div>
+        </div>
       </div>
     </aside>
   )

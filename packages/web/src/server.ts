@@ -5,6 +5,13 @@ import multer from 'multer'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import archiver from 'archiver'
+import {
+  authenticate, requireRole, attemptLogin, hashPassword,
+  type AuthReq,
+} from './auth.js'
+import {
+  listUsers, addUser, removeUser, findByUsername,
+} from './users.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '../../..')
@@ -20,14 +27,14 @@ app.use((req, res, next) => {
   if (origin === 'http://localhost:5173') {
     res.setHeader('Access-Control-Allow-Origin', origin)
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
   }
   if (req.method === 'OPTIONS') return res.sendStatus(200)
   next()
 })
 
 // ---------------------------------------------------------------------------
-// Preview: serve built game files
+// Preview: serve built game files (public)
 // ---------------------------------------------------------------------------
 
 app.use('/preview/:theme', (req, res, next) => {
@@ -35,15 +42,71 @@ app.use('/preview/:theme', (req, res, next) => {
   if (!theme) return res.status(400).end()
   const buildDir = path.join(BUILDS_DIR, theme)
   if (!fs.existsSync(buildDir)) return res.status(404).end()
-  // express.static strips the route prefix automatically
   express.static(buildDir)(req, res, next)
+})
+
+// ---------------------------------------------------------------------------
+// Auth routes (public)
+// ---------------------------------------------------------------------------
+
+app.post('/api/auth/login', async (req, res) => {
+  const { username, password } = req.body as { username?: string; password?: string }
+  if (!username || !password) {
+    return res.status(400).json({ error: 'username and password required' })
+  }
+  const token = await attemptLogin(username, password)
+  if (!token) return res.status(401).json({ error: 'Invalid credentials' })
+  res.json({ token })
+})
+
+app.get('/api/auth/me', authenticate, (req: AuthReq, res) => {
+  res.json(req.user)
+})
+
+// ---------------------------------------------------------------------------
+// User management (owner / admin)
+// ---------------------------------------------------------------------------
+
+app.get('/api/users', authenticate, requireRole('admin'), (_req, res) => {
+  res.json(listUsers())
+})
+
+app.post('/api/users', authenticate, requireRole('owner'), async (req: AuthReq, res) => {
+  const { username, password, role } = req.body as {
+    username?: string; password?: string; role?: string
+  }
+  if (!username || !password || !role) {
+    return res.status(400).json({ error: 'username, password, and role are required' })
+  }
+  if (role !== 'admin' && role !== 'creator') {
+    return res.status(400).json({ error: 'role must be admin or creator' })
+  }
+  if (findByUsername(username)) {
+    return res.status(409).json({ error: `User "${username}" already exists` })
+  }
+  try {
+    const passwordHash = await hashPassword(password)
+    const user = addUser(username, passwordHash, role, req.user!.sub)
+    const { passwordHash: _pw, ...safe } = user
+    res.status(201).json(safe)
+  } catch (err: unknown) {
+    res.status(500).json({ error: (err as Error).message })
+  }
+})
+
+app.delete('/api/users/:id', authenticate, requireRole('owner'), (req, res) => {
+  const id = Number(req.params.id)
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id' })
+  const removed = removeUser(id)
+  if (!removed) return res.status(404).json({ error: 'User not found' })
+  res.json({ ok: true })
 })
 
 // ---------------------------------------------------------------------------
 // API: themes list
 // ---------------------------------------------------------------------------
 
-app.get('/api/themes', (_req, res) => {
+app.get('/api/themes', authenticate, requireRole('creator'), (_req, res) => {
   if (!fs.existsSync(THEMES_DIR)) return res.json([])
   const dirs = fs.readdirSync(THEMES_DIR).filter(d =>
     fs.statSync(path.join(THEMES_DIR, d)).isDirectory()
@@ -55,11 +118,17 @@ app.get('/api/themes', (_req, res) => {
       const m = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'))
       title = m?.meta?.title ?? id
     } catch {}
+    let createdBy: string | undefined
+    try {
+      const meta = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, id, '_meta.json'), 'utf-8'))
+      createdBy = meta?.createdBy
+    } catch {}
     return {
       id,
       title,
       hasManifest: fs.existsSync(manifestPath),
       isBuilt: fs.existsSync(path.join(BUILDS_DIR, id)),
+      createdBy,
     }
   })
   res.json(result)
@@ -69,7 +138,7 @@ app.get('/api/themes', (_req, res) => {
 // API: create theme
 // ---------------------------------------------------------------------------
 
-app.post('/api/themes', (req, res) => {
+app.post('/api/themes', authenticate, requireRole('creator'), (req: AuthReq, res) => {
   const { id, title } = req.body as { id?: string; title?: string }
   if (!id || !sanitizeId(id)) {
     return res.status(400).json({ error: 'Недопустимый ID (только строчные буквы, цифры, дефис)' })
@@ -81,6 +150,10 @@ app.post('/api/themes', (req, res) => {
   fs.mkdirSync(path.join(themeDir, 'assets', 'audio'), { recursive: true })
   const manifest = defaultManifest(id, title || id)
   fs.writeFileSync(path.join(themeDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
+  fs.writeFileSync(
+    path.join(themeDir, '_meta.json'),
+    JSON.stringify({ createdBy: req.user!.sub, createdAt: new Date().toISOString() }, null, 2),
+  )
   res.json({ id, title: title || id })
 })
 
@@ -88,13 +161,12 @@ app.post('/api/themes', (req, res) => {
 // API: delete theme
 // ---------------------------------------------------------------------------
 
-app.delete('/api/themes/:id', (req, res) => {
+app.delete('/api/themes/:id', authenticate, requireRole('admin'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).json({ error: 'Invalid id' })
   const themeDir = path.join(THEMES_DIR, id)
   if (!fs.existsSync(themeDir)) return res.status(404).json({ error: 'Theme not found' })
   fs.rmSync(themeDir, { recursive: true, force: true })
-  // Also remove build if present
   const buildDir = path.join(BUILDS_DIR, id)
   if (fs.existsSync(buildDir)) fs.rmSync(buildDir, { recursive: true, force: true })
   res.json({ ok: true })
@@ -104,7 +176,7 @@ app.delete('/api/themes/:id', (req, res) => {
 // API: manifest CRUD
 // ---------------------------------------------------------------------------
 
-app.get('/api/themes/:id/manifest', (req, res) => {
+app.get('/api/themes/:id/manifest', authenticate, requireRole('creator'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).json({ error: 'Invalid id' })
   const manifestPath = path.join(THEMES_DIR, id, 'manifest.json')
@@ -116,7 +188,7 @@ app.get('/api/themes/:id/manifest', (req, res) => {
   }
 })
 
-app.put('/api/themes/:id/manifest', (req, res) => {
+app.put('/api/themes/:id/manifest', authenticate, requireRole('creator'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).json({ error: 'Invalid id' })
   const themeDir = path.join(THEMES_DIR, id)
@@ -148,7 +220,7 @@ const upload = multer({
   }),
 })
 
-app.get('/api/themes/:id/assets', (req, res) => {
+app.get('/api/themes/:id/assets', authenticate, requireRole('creator'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).json({ error: 'Invalid id' })
   const assetsDir = path.join(THEMES_DIR, id, 'assets')
@@ -156,14 +228,14 @@ app.get('/api/themes/:id/assets', (req, res) => {
   res.json(walkDir(assetsDir))
 })
 
-app.post('/api/themes/:id/assets', upload.single('file'), (req, res) => {
+app.post('/api/themes/:id/assets', authenticate, requireRole('creator'), upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file' })
   const subdir = sanitizeSubdir(req.query.dir as string | undefined)
   const relPath = subdir ? `${subdir}/${req.file.originalname}` : req.file.originalname
   res.json({ path: relPath })
 })
 
-app.delete('/api/themes/:id/assets', (req, res) => {
+app.delete('/api/themes/:id/assets', authenticate, requireRole('creator'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).json({ error: 'Invalid id' })
   const relPath = req.query.path as string
@@ -183,7 +255,7 @@ app.delete('/api/themes/:id/assets', (req, res) => {
 // API: serve individual asset file (for preview in web UI)
 // ---------------------------------------------------------------------------
 
-app.get('/api/themes/:id/asset-file', (req, res) => {
+app.get('/api/themes/:id/asset-file', authenticate, requireRole('creator'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).end()
   const relPath = req.query.path as string
@@ -199,7 +271,7 @@ app.get('/api/themes/:id/asset-file', (req, res) => {
 // API: build (SSE streaming)
 // ---------------------------------------------------------------------------
 
-app.get('/api/themes/:id/build', (req, res) => {
+app.get('/api/themes/:id/build', authenticate, requireRole('creator'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).end()
   const themeDir = path.join(THEMES_DIR, id)
@@ -232,10 +304,10 @@ app.get('/api/themes/:id/build', (req, res) => {
 })
 
 // ---------------------------------------------------------------------------
-// API: download zip
+// API: download zip (admin+)
 // ---------------------------------------------------------------------------
 
-app.get('/api/themes/:id/download', (req, res) => {
+app.get('/api/themes/:id/download', authenticate, requireRole('admin'), (req, res) => {
   const id = sanitizeId(req.params.id)
   if (!id) return res.status(400).json({ error: 'Invalid id' })
   const buildDir = path.join(BUILDS_DIR, id)

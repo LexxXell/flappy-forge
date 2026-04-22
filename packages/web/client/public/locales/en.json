@@ -126,5 +126,24 @@
   "preview.log.status.building": "Building…",
   "preview.log.status.success": "Done",
   "preview.log.status.error": "Error",
-  "preview.downloadYandex": "⬇ Download for Yandex Games"
+  "preview.downloadYandex": "⬇ Download for Yandex Games",
+
+  "auth.username": "Username",
+  "auth.password": "Password",
+  "auth.login": "Log In",
+  "auth.loggingIn": "Logging in…",
+  "auth.logout": "Log out",
+
+  "users.title": "User Management",
+  "users.loading": "Loading…",
+  "users.empty": "No users yet",
+  "users.col.username": "Username",
+  "users.col.role": "Role",
+  "users.col.createdBy": "Created by",
+  "users.delete.confirm": "Delete user \"{username}\"?",
+  "users.create.title": "Add user",
+  "users.create.username": "Username",
+  "users.create.password": "Password",
+  "users.create.add": "Add",
+  "users.create.creating": "Adding…"
 }

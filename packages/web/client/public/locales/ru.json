@@ -126,5 +126,24 @@
   "preview.log.status.building": "Сборка…",
   "preview.log.status.success": "Готово",
   "preview.log.status.error": "Ошибка",
-  "preview.downloadYandex": "⬇ Скачать для Yandex Games"
+  "preview.downloadYandex": "⬇ Скачать для Yandex Games",
+
+  "auth.username": "Имя пользователя",
+  "auth.password": "Пароль",
+  "auth.login": "Войти",
+  "auth.loggingIn": "Вход…",
+  "auth.logout": "Выйти",
+
+  "users.title": "Управление пользователями",
+  "users.loading": "Загрузка…",
+  "users.empty": "Нет пользователей",
+  "users.col.username": "Пользователь",
+  "users.col.role": "Роль",
+  "users.col.createdBy": "Создан",
+  "users.delete.confirm": "Удалить пользователя \"{username}\"?",
+  "users.create.title": "Добавить пользователя",
+  "users.create.username": "Имя пользователя",
+  "users.create.password": "Пароль",
+  "users.create.add": "Добавить",
+  "users.create.creating": "Добавление…"
 }
