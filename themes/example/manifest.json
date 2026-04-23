@@ -1,11 +1,11 @@
 {
   "meta": {
     "id": "example",
-    "title": "Flappy Example"
+    "title": "Flappy Examplessss"
   },
   "physics": {
     "gravity": 900,
-    "jumpForce": -380,
+    "jumpForce": -594,
     "speed": 210
   },
   "spawn": {
@@ -28,12 +28,30 @@
       "autoplay": true
     },
     "sfx": {
-      "click": { "src": "assets/audio/click.wav", "volume": 0.6 },
-      "jump": { "src": "assets/audio/jump.wav", "volume": 0.75 },
-      "hit": { "src": "assets/audio/hit.wav", "volume": 0.85 },
-      "coin": { "src": "assets/audio/coin.wav", "volume": 0.8 },
-      "point": { "src": "assets/audio/point.wav", "volume": 0.75 },
-      "gameOver": { "src": "assets/audio/game-over.wav", "volume": 0.85 }
+      "click": {
+        "src": "assets/audio/click.wav",
+        "volume": 0.6
+      },
+      "jump": {
+        "src": "assets/audio/jump.wav",
+        "volume": 0.75
+      },
+      "hit": {
+        "src": "assets/audio/hit.wav",
+        "volume": 0.85
+      },
+      "coin": {
+        "src": "assets/audio/coin.wav",
+        "volume": 0.8
+      },
+      "point": {
+        "src": "assets/audio/point.wav",
+        "volume": 0.75
+      },
+      "gameOver": {
+        "src": "assets/audio/game-over.wav",
+        "volume": 0.85
+      }
     },
     "bindings": {
       "menu:start:click": "click",
@@ -140,7 +158,12 @@
         "fontSize": 30,
         "color": "#ffffff",
         "backgroundColor": "#3f3f3f",
-        "padding": { "left": 24, "right": 24, "top": 12, "bottom": 12 },
+        "padding": {
+          "left": 24,
+          "right": 24,
+          "top": 12,
+          "bottom": 12
+        },
         "stroke": "#000000",
         "strokeThickness": 2
       },
@@ -162,7 +185,9 @@
           "strokeThickness": 7
         },
         "muteButtonStyle": {
-          "hoverText": { "backgroundColor": "#707070" }
+          "hoverText": {
+            "backgroundColor": "#707070"
+          }
         },
         "customButtonStyle": {
           "text": {

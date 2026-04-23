@@ -151,6 +151,7 @@ Notes:
 - CORS in dev allows `http://localhost:5173`.
 - Production fallback serves built client from `packages/web/client/dist` if present.
 - Auth/user endpoints run in-process against local SQLite through `identityRepository.ts`.
+- Preview supports live mode via query `?live=1&token=...`, so saved manifest/asset changes are reflected without rebuilding.
 
 ## 7) Identity Repository (`packages/web/src/identityRepository.ts`)
 
@@ -187,6 +188,11 @@ Main screens/components:
 - `JsonEditorPanel.tsx`: raw manifest JSON edit/format/apply.
 - `PreviewPanel.tsx`: game iframe + build log + download action.
 - `UsersPanel.tsx`: admin/owner user management modal.
+
+Live preview behavior:
+- For editor roles (`creator+`), preview iframe is opened in live mode and reloaded on save/assets change.
+- Engine fetches current manifest over API and rewrites asset refs to `/api/themes/:id/asset-file` URLs.
+- Initial build is still required to have preview runtime files under `/preview/:theme/`.
 
 ## 9) Data and Generated Artifacts
 

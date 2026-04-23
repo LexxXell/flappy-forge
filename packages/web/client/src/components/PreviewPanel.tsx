@@ -81,7 +81,7 @@ export default function PreviewPanel({ themeId, isBuilt, previewKey, buildLog, b
           {isBuilt ? (
             <iframe
               key={previewKey}
-              src={api.getPreviewUrl(themeId)}
+              src={api.getLivePreviewUrl(themeId, previewKey)}
               title="Game Preview"
               style={{ width: '100%', height: '100%', maxWidth: 480, maxHeight: 854, border: 'none' }}
               allow="autoplay"

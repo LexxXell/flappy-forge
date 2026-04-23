@@ -85,6 +85,7 @@ export default function App() {
     setAssets([])
     setBuildLog([])
     setBuildStatus('idle')
+    setPreviewKey(k => k + 1)
     try {
       const [m, a] = await Promise.all([api.getManifest(id), api.getAssets(id)])
       setManifest(m)
@@ -105,6 +106,7 @@ export default function App() {
     try {
       await api.saveManifest(selectedId, manifest)
       setIsDirty(false)
+      setPreviewKey(k => k + 1)
       toast(t('toast.saved'), 'success')
       await loadThemes()
     } catch (e) {
@@ -155,7 +157,10 @@ export default function App() {
 
   const handleAssetsChange = useCallback(async () => {
     if (!selectedId) return
-    try { setAssets(await api.getAssets(selectedId)) } catch {}
+    try {
+      setAssets(await api.getAssets(selectedId))
+      setPreviewKey(k => k + 1)
+    } catch {}
   }, [selectedId])
 
   const selectedTheme = themes.find(th => th.id === selectedId)

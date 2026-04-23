@@ -194,6 +194,16 @@ export function getPreviewUrl(id: string): string {
   return `/preview/${id}/`
 }
 
+export function getLivePreviewUrl(id: string, version: number): string {
+  const token = getToken()
+  const qs = new URLSearchParams({
+    live: '1',
+    livev: String(version),
+  })
+  if (token) qs.set('token', token)
+  return `/preview/${id}/?${qs.toString()}`
+}
+
 export function getDownloadUrl(id: string): string {
   const token = getToken()
   const qs = token ? `?token=${encodeURIComponent(token)}` : ''
