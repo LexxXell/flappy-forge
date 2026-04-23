@@ -1,15 +1,11 @@
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import type { Request, Response, NextFunction } from 'express'
-import { findByUsername } from './users.js'
-
-// ---------------------------------------------------------------------------
-// Config (set via env; defaults are fine for local dev)
-// ---------------------------------------------------------------------------
+import { findByUsername } from './identityRepository.js'
+export const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-production'
 
 export const OWNER_USERNAME = process.env.OWNER_USERNAME ?? 'owner'
 export const OWNER_PASSWORD = process.env.OWNER_PASSWORD ?? 'changeme'
-export const JWT_SECRET     = process.env.JWT_SECRET     ?? 'dev-secret-change-in-production'
 
 if (OWNER_PASSWORD === 'changeme') {
   console.warn('\n  ⚠  OWNER_PASSWORD is the default "changeme" — set OWNER_PASSWORD env var!\n')
@@ -27,12 +23,8 @@ export function hasRole(actual: Role, required: Role): boolean {
   return RANK[actual] >= RANK[required]
 }
 
-// ---------------------------------------------------------------------------
-// Token
-// ---------------------------------------------------------------------------
-
 export interface TokenPayload {
-  sub: string   // username
+  sub: string
   role: Role
   iat?: number
   exp?: number
@@ -46,9 +38,10 @@ export async function attemptLogin(username: string, password: string): Promise<
   if (username === OWNER_USERNAME) {
     return password === OWNER_PASSWORD ? sign(username, 'owner') : null
   }
-  const user = findByUsername(username)
-  // Unknown usernames are treated as default "user" role (no registration needed).
+
+  const user = await findByUsername(username)
   if (!user) return sign(username, 'user')
+
   const ok = await bcrypt.compare(password, user.passwordHash)
   return ok ? sign(username, user.role) : null
 }
@@ -61,10 +54,6 @@ export function verifyToken(token: string): TokenPayload | null {
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10)
 }
-
-// ---------------------------------------------------------------------------
-// Express middleware
-// ---------------------------------------------------------------------------
 
 export interface AuthReq extends Request {
   user?: TokenPayload

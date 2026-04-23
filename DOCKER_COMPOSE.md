@@ -49,7 +49,7 @@ Host paths are mounted into the container:
 
 - `./themes` -> `/app/themes`
 - `./builds` -> `/app/builds`
-- `./packages/web/data` -> `/app/packages/web/data`
+- `./packages/web/data` -> `/app/packages/web/data` (includes SQLite DB `identity.sqlite`)
 
 ## Reverse Proxy (local nginx)
 

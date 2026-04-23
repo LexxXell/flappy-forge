@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 COPY packages/builder/package.json packages/builder/package.json
 COPY packages/engine/package.json packages/engine/package.json
 COPY packages/web/package.json packages/web/package.json
-RUN npm ci
+RUN npm install
 
 # Copy project sources.
 COPY . .

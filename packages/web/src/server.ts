@@ -10,8 +10,11 @@ import {
   type AuthReq,
 } from './auth.js'
 import {
-  listUsers, addUser, removeUser, findByUsername,
-} from './users.js'
+  addUser,
+  findByUsername,
+  listUsers,
+  removeUser,
+} from './identityRepository.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(__dirname, '../../..')
@@ -88,11 +91,11 @@ app.get('/api/auth/me', authenticate, (req: AuthReq, res) => {
 // User management (owner / admin)
 // ---------------------------------------------------------------------------
 
-app.get('/api/users', authenticate, requireRole('admin'), (_req, res) => {
-  res.json(listUsers())
+app.get('/api/users', authenticate, requireRole('admin'), async (req, res) => {
+  res.json(await listUsers())
 })
 
-app.post('/api/users', authenticate, requireRole('admin'), async (req: AuthReq, res) => {
+app.post('/api/users', authenticate, requireRole('admin'), async (req, res) => {
   const { username, password, role } = req.body as {
     username?: string; password?: string; role?: string
   }
@@ -105,12 +108,12 @@ app.post('/api/users', authenticate, requireRole('admin'), async (req: AuthReq, 
   if (req.user!.role === 'admin' && role !== 'creator') {
     return res.status(403).json({ error: 'Admins can create only creator users' })
   }
-  if (findByUsername(username)) {
+  if (await findByUsername(username)) {
     return res.status(409).json({ error: `User "${username}" already exists` })
   }
   try {
     const passwordHash = await hashPassword(password)
-    const user = addUser(username, passwordHash, role, req.user!.sub)
+    const user = await addUser(username, passwordHash, role, req.user!.sub)
     const { passwordHash: _pw, ...safe } = user
     res.status(201).json(safe)
   } catch (err: unknown) {
@@ -118,10 +121,10 @@ app.post('/api/users', authenticate, requireRole('admin'), async (req: AuthReq, 
   }
 })
 
-app.delete('/api/users/:id', authenticate, requireRole('owner'), (req, res) => {
+app.delete('/api/users/:id', authenticate, requireRole('owner'), async (req, res) => {
   const id = Number(req.params.id)
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id' })
-  const removed = removeUser(id)
+  const removed = await removeUser(id)
   if (!removed) return res.status(404).json({ error: 'User not found' })
   res.json({ ok: true })
 })
