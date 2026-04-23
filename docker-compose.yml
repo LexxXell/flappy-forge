@@ -1,6 +1,7 @@
 services:
   flappy-forge:
     container_name: flappy-forge
+    image: ${FLAPPY_FORGE_IMAGE:-flappy-forge:latest}
     build:
       context: .
       dockerfile: Dockerfile

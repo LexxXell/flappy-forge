@@ -94,11 +94,15 @@ const DEFAULT_SCORE_HUD_STYLE: TextStyleConfig = {
   strokeThickness: 4,
 }
 
+const COLLISION_GAME_OVER_DELAY_MS = 700
+const DEATH_FALL_MIN_VELOCITY_Y = 180
+
 export class GameScene extends Phaser.Scene {
   private cfg: GameConfig
   private player!: Phaser.Physics.Arcade.Sprite
   private pipes!: Phaser.Physics.Arcade.Group
   private coins!: Phaser.Physics.Arcade.Group
+  private spaceKey?: Phaser.Input.Keyboard.Key
   private scoreText!: Phaser.GameObjects.Text
   private score = 0
   private taps = 0
@@ -175,10 +179,10 @@ export class GameScene extends Phaser.Scene {
 
     // Input
     this.input.on('pointerdown', this.jump, this)
-    this.input.keyboard?.on('keydown-SPACE', this.jump, this)
+    this.spaceKey = this.input.keyboard?.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE)
 
     // Collisions
-    this.physics.add.overlap(this.player, this.pipes, () => this.die(), undefined, this)
+    this.physics.add.overlap(this.player, this.pipes, () => this.die('collision'), undefined, this)
     this.physics.add.overlap(
       this.player,
       this.coins,
@@ -200,13 +204,17 @@ export class GameScene extends Phaser.Scene {
   update(_time: number, delta: number) {
     if (!this.alive) return
 
+    if (this.spaceKey && Phaser.Input.Keyboard.JustDown(this.spaceKey)) {
+      this.jump()
+    }
+
     // Tilt player based on vertical velocity
     const body = this.player.body as Phaser.Physics.Arcade.Body
     this.player.angle = Phaser.Math.Clamp(body.velocity.y * 0.08, -25, 85)
 
     // Kill if out of vertical bounds
     if (this.player.y > this.scale.height + 60 || this.player.y < -60) {
-      this.die()
+      this.die('bounds')
       return
     }
 
@@ -298,19 +306,20 @@ export class GameScene extends Phaser.Scene {
     ;(coin.body as Phaser.Physics.Arcade.Body).setAllowGravity(false)
   }
 
-  private die() {
+  private die(reason: 'collision' | 'bounds' | 'forced' = 'forced') {
     if (!this.alive) return
     this.alive = false
     this.player.setTint(0xff4444)
-    this.player.setAngle(0)
     const body = this.player.body as Phaser.Physics.Arcade.Body
-    body.setVelocity(0, 0)
-    body.setAllowGravity(false)
+    const keepGravity = reason === 'collision'
+    const fallVelocityY = Math.max(body.velocity.y, DEATH_FALL_MIN_VELOCITY_Y)
+    body.setVelocity(0, keepGravity ? fallVelocityY : 0)
+    body.setAllowGravity(keepGravity)
+    this.player.setAngle(keepGravity ? 90 : 0)
     this.pipes.setVelocityX(0)
     this.coins.setVelocityX(0)
 
     this.fire('player:collision')
-    this.fire('game:over')
 
     // Submit score to Yandex leaderboard (non-blocking, fire-and-forget)
     if (this.cfg.leaderboard) {
@@ -318,7 +327,20 @@ export class GameScene extends Phaser.Scene {
     }
 
     const isNewBest = updateBestScore(this.score)
-    this.showGameOver(state.bestScore, isNewBest)
+    const openGameOver = () => {
+      this.player.setAngle(0)
+      body.setVelocity(0, 0)
+      body.setAllowGravity(false)
+      this.fire('game:over')
+      this.showGameOver(state.bestScore, isNewBest)
+    }
+
+    if (reason === 'collision') {
+      this.time.delayedCall(COLLISION_GAME_OVER_DELAY_MS, openGameOver)
+      return
+    }
+
+    openGameOver()
   }
 
   private fire(event: GameEvent) {
@@ -336,7 +358,7 @@ export class GameScene extends Phaser.Scene {
         this.score += v
         this.scoreText.setText(`Score: ${this.score}`)
       },
-      endGame: () => this.die(),
+      endGame: () => this.die('forced'),
       spawnCoin: () => this.spawnCoin(),
     }
   }

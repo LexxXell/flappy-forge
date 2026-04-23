@@ -1,0 +1,159 @@
+name: CI/CD Deploy (master)
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-master
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --tag "flappy-forge:${GITHUB_SHA}" .
+
+      - name: Pack image artifact
+        run: |
+          set -euo pipefail
+          docker save "flappy-forge:${GITHUB_SHA}" | gzip > "flappy-forge-${GITHUB_SHA}.tar.gz"
+          sha256sum "flappy-forge-${GITHUB_SHA}.tar.gz" > "flappy-forge-${GITHUB_SHA}.tar.gz.sha256"
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: flappy-forge-image-${{ github.sha }}
+          path: |
+            flappy-forge-${{ github.sha }}.tar.gz
+            flappy-forge-${{ github.sha }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy To Server
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: flappy-forge-image-${{ github.sha }}
+          path: .
+
+      - name: Configure SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_HOST}"
+          test -n "${DEPLOY_USER}"
+          test -n "${DEPLOY_SSH_KEY}"
+
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${DEPLOY_SSH_KEY}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          if [ -n "${DEPLOY_KNOWN_HOSTS:-}" ]; then
+            printf '%s\n' "${DEPLOY_KNOWN_HOSTS}" > ~/.ssh/known_hosts
+          else
+            PORT="${DEPLOY_PORT:-22}"
+            ssh-keyscan -p "${PORT}" "${DEPLOY_HOST}" > ~/.ssh/known_hosts
+          fi
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Upload release files
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          APP_DIR="${DEPLOY_PATH:-/opt/flappy-forge}"
+          ARCHIVE="flappy-forge-${GITHUB_SHA}.tar.gz"
+
+          ssh -p "${PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" "mkdir -p '${APP_DIR}'"
+          scp -P "${PORT}" "${ARCHIVE}" "${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}/${ARCHIVE}"
+          scp -P "${PORT}" docker-compose.yml "${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}/docker-compose.yml"
+          scp -P "${PORT}" .env.example "${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}/.env.example"
+
+      - name: Upload .env (optional)
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_ENV_FILE: ${{ secrets.DEPLOY_ENV_FILE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOY_ENV_FILE:-}" ]; then
+            exit 0
+          fi
+
+          PORT="${DEPLOY_PORT:-22}"
+          APP_DIR="${DEPLOY_PATH:-/opt/flappy-forge}"
+          printf '%s\n' "${DEPLOY_ENV_FILE}" > .deploy.env
+          scp -P "${PORT}" .deploy.env "${DEPLOY_USER}@${DEPLOY_HOST}:${APP_DIR}/.env"
+          rm -f .deploy.env
+
+      - name: Deploy container
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          APP_DIR="${DEPLOY_PATH:-/opt/flappy-forge}"
+          ARCHIVE="flappy-forge-${GITHUB_SHA}.tar.gz"
+          IMAGE_TAG="flappy-forge:${GITHUB_SHA}"
+
+          ssh -p "${PORT}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "APP_DIR='${APP_DIR}' ARCHIVE='${ARCHIVE}' IMAGE_TAG='${IMAGE_TAG}' bash -s" <<'EOSSH'
+          set -euo pipefail
+          cd "${APP_DIR}"
+
+          mkdir -p themes builds packages/web/data
+
+          if [ ! -f .env ] && [ -f .env.example ]; then
+            cp .env.example .env
+          fi
+
+          gunzip -c "${ARCHIVE}" | docker load
+
+          if docker compose version >/dev/null 2>&1; then
+            compose_cmd=(docker compose)
+          elif command -v docker-compose >/dev/null 2>&1; then
+            compose_cmd=(docker-compose)
+          else
+            echo "Docker Compose is not installed on server" >&2
+            exit 1
+          fi
+
+          FLAPPY_FORGE_IMAGE="${IMAGE_TAG}" "${compose_cmd[@]}" up -d --no-build --force-recreate
+
+          rm -f "${ARCHIVE}"
+          docker image prune -f >/dev/null 2>&1 || true
+          EOSSH
